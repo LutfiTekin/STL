@@ -7,39 +7,67 @@ import (
 )
 
 type Result struct {
-	SafeToLeave        bool   `json:"safeToLeave"`
-	NextTramDeparture  string `json:"nextTramDeparture"`
-	Message            string `json:"message"`
+	SafeToLeave        bool     `json:"safeToLeave"`
+	NextTramDeparture  string   `json:"nextTramDeparture"`
+	UpcomingDepartures []string `json:"upcomingDepartures"`
+	Message            string   `json:"message"`
 }
 
 func Predict(departures []gtfs.Departure, now time.Time) Result {
-	for _, d := range departures {
-		// Filter for Hauptbahnhof direction
-		// Note: We might need to be more specific with the headsign check
-		if d.Headsign != "Lausen" { // Based on earlier conversation, Lausen seems to be the direction
-			continue
-		}
+	fmt.Printf("Predicting for %d departures at %v\n", len(departures), now.Format("15:04:05"))
+	
+	var upcoming []gtfs.Departure
 
+	for _, d := range departures {
 		depTime, err := parseGTFSTime(d.Time, now)
 		if err != nil {
 			continue
 		}
 
 		diff := depTime.Sub(now).Minutes()
+		if diff < 0 {
+			continue // Already departed
+		}
 
-		if diff >= 3 && diff <= 6 {
-			return Result{
-				SafeToLeave:       true,
-				NextTramDeparture: d.Time,
-				Message:           fmt.Sprintf("Safe to leave! Next tram to Hbf in %.0f minutes.", diff),
-			}
+		upcoming = append(upcoming, d)
+		if len(upcoming) >= 3 {
+			break
 		}
 	}
 
-	return Result{
-		SafeToLeave: false,
-		Message:     "No suitable tram found soon. Either too late or too early.",
+	if len(upcoming) == 0 {
+		return Result{
+			SafeToLeave: false,
+			Message:     "No more trams found for today.",
+		}
 	}
+
+	var upcomingTimes []string
+	for _, u := range upcoming {
+		upcomingTimes = append(upcomingTimes, u.Time)
+	}
+
+	firstDepTime, _ := parseGTFSTime(upcoming[0].Time, now)
+	firstDiff := firstDepTime.Sub(now).Minutes()
+
+	res := Result{
+		NextTramDeparture:  upcoming[0].Time,
+		UpcomingDepartures: upcomingTimes,
+	}
+
+	if firstDiff >= 3 && firstDiff <= 6 {
+		res.SafeToLeave = true
+		res.Message = fmt.Sprintf("Safe to leave! Next tram in %.0f minutes.", firstDiff)
+	} else {
+		res.SafeToLeave = false
+		if firstDiff < 3 {
+			res.Message = fmt.Sprintf("Too late! Next tram is in %.0f minutes.", firstDiff)
+		} else {
+			res.Message = fmt.Sprintf("Too early! Next tram is in %.0f minutes.", firstDiff)
+		}
+	}
+
+	return res
 }
 
 func parseGTFSTime(gtfsTime string, now time.Time) (time.Time, error) {

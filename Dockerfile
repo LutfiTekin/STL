@@ -13,6 +13,8 @@ RUN go build -o tram-predictor ./cmd/server/main.go
 # Final stage
 FROM alpine:latest
 
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 COPY --from=builder /app/tram-predictor .

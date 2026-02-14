@@ -1,15 +1,17 @@
 services:
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
 
   tram-predictor:
     build: .
     environment:
       - REDIS_ADDR=redis:6379
       - PORT=9030
+      - TZ=Europe/Berlin
     ports:
       - "9030:9030"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       - redis

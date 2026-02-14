@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +14,8 @@ import (
 )
 
 const (
-	stopID      = "665806" // Rathaus Schönefeld
+	stopID      = "665806" // Parent Rathaus Schönefeld
+	hbfStopID   = "218016" // Hauptbahnhof (Steig A)
 	gtfsURL     = "https://download.gtfs.de/germany/free/latest.zip"
 	redisAddr   = "localhost:6379"
 	tmpDir      = "./tmp_gtfs"
@@ -37,19 +39,26 @@ func main() {
 	fs := http.FileServer(http.Dir("web"))
 	http.Handle("/", fs)
 
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+
 	http.HandleFunc("/api/v1/tram-status", func(w http.ResponseWriter, r *http.Request) {
 		var departures []gtfs.Departure
-		err := store.GetDepartures(ctx, stopID, &departures)
+		dateStr := time.Now().Format("20060102")
+		err := store.GetDepartures(ctx, stopID, dateStr, &departures)
 		if err != nil {
-			http.Error(w, "Failed to get departures: "+err.Error(), http.StatusInternalServerError)
+			fmt.Printf("Error getting departures from Redis: %v\n", err)
+			// Return a valid JSON even on error to avoid frontend 500
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"safeToLeave": false, "message": "Data not ready yet. Please try again later."}`)
 			return
 		}
 
 		result := predictor.Predict(departures, time.Now())
 		
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"safeToLeave": %t, "nextTramDeparture": "%s", "message": "%s"}`, 
-			result.SafeToLeave, result.NextTramDeparture, result.Message)
+		json.NewEncoder(w).Encode(result)
 	})
 
 	port := os.Getenv("PORT")
@@ -105,23 +114,39 @@ func fetchAndStore(store *storage.Storage) {
 		log.Printf("Failed to find route ID for STR 1: %v", err)
 		return
 	}
+	fmt.Printf("Found Route ID: %s\n", routeID)
 
-	tripHeadsigns, err := parser.GetTripIDs(routeID)
-	if err != nil {
-		log.Printf("Failed to get trip IDs: %v", err)
-		return
-	}
+	// Leipzig, Rathaus Schönefeld platforms
+	platforms := []string{"223358", "517083"}
 
-	departures, err := parser.GetDepartures(stopID, tripHeadsigns)
-	if err != nil {
-		log.Printf("Failed to get departures: %v", err)
-		return
-	}
+	// Process for the next 7 days
+	for i := 0; i < 7; i++ {
+		date := time.Now().AddDate(0, 0, i)
+		dateStr := date.Format("20060102")
 
-	fmt.Printf("Storing %d departures in Redis...\n", len(departures))
-	err = store.StoreDepartures(context.Background(), stopID, departures)
-	if err != nil {
-		log.Printf("Failed to store departures in Redis: %v", err)
+		activeServices, err := parser.GetActiveServiceIDs(date)
+		if err != nil {
+			log.Printf("Failed to get active service IDs for %s: %v", dateStr, err)
+			continue
+		}
+
+		tripIDs, err := parser.GetTripIDs(routeID, activeServices)
+		if err != nil {
+			log.Printf("Failed to get trip IDs for %s: %v", dateStr, err)
+			continue
+		}
+
+		allDepartures, err := parser.GetDeparturesToHbf(platforms, hbfStopID, tripIDs)
+		if err != nil {
+			log.Printf("Failed to get departures for %s: %v", dateStr, err)
+			continue
+		}
+
+		fmt.Printf("Storing %d departures for %s to Hbf in Redis...\n", len(allDepartures), dateStr)
+		err = store.StoreDepartures(context.Background(), stopID, dateStr, allDepartures)
+		if err != nil {
+			log.Printf("Failed to store departures for %s in Redis: %v", dateStr, err)
+		}
 	}
 
 	fmt.Println("GTFS update complete.")

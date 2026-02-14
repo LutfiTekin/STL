@@ -52,21 +52,25 @@
     <div class="container">
         <h1>Safe To Leave?</h1>
         <div id="status" class="status-box">Checking...</div>
-        <div id="time" class="time"></div>
-        <div id="message" style="margin-bottom: 1.5rem; color: #555;"></div>
+        <div id="message" style="margin-bottom: 1rem; color: #555;"></div>
+        <div id="upcoming" style="margin-bottom: 1.5rem; text-align: left; padding: 0 1rem;">
+            <strong style="display: block; margin-bottom: 0.5rem;">Next 3 Trams:</strong>
+            <ul id="tram-list" style="list-style: none; padding: 0; margin: 0;">
+            </ul>
+        </div>
         <button class="refresh-btn" onclick="fetchStatus()">Refresh</button>
     </div>
 
     <script>
         async function fetchStatus() {
             const statusEl = document.getElementById('status');
-            const timeEl = document.getElementById('time');
             const messageEl = document.getElementById('message');
+            const tramListEl = document.getElementById('tram-list');
             
             statusEl.innerText = "Checking...";
             statusEl.className = "status-box";
-            timeEl.innerText = "";
             messageEl.innerText = "";
+            tramListEl.innerHTML = "";
 
             try {
                 const response = await fetch('/api/v1/tram-status');
@@ -80,8 +84,22 @@
                     statusEl.classList.add('not-safe');
                 }
                 
-                timeEl.innerText = data.nextTramDeparture ? `Next Tram: ${data.nextTramDeparture}` : "";
                 messageEl.innerText = data.message;
+
+                if (data.upcomingDepartures && data.upcomingDepartures.length > 0) {
+                    data.upcomingDepartures.forEach(time => {
+                        const li = document.createElement('li');
+                        li.innerText = `• ${time}`;
+                        li.style.fontSize = "1.1rem";
+                        li.style.color = "#444";
+                        li.style.marginBottom = "0.3rem";
+                        tramListEl.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.innerText = "No upcoming trams found.";
+                    tramListEl.appendChild(li);
+                }
             } catch (error) {
                 statusEl.innerText = "Error";
                 messageEl.innerText = "Failed to fetch data from server.";
