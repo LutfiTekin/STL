@@ -57,6 +57,7 @@
     <div class="container">
         <h1>Safe To Leave?</h1>
         <div id="status" class="status-box">Checking...</div>
+        <div id="countdown" style="font-size: 2.5rem; font-weight: bold; color: #e44d26; margin-bottom: 1rem; display: none;">00:00</div>
         <div id="message" style="margin-bottom: 1rem; color: #555;"></div>
         <div id="upcoming" style="margin-bottom: 1.5rem; text-align: left; padding: 0 1rem;">
             <strong style="display: block; margin-bottom: 0.5rem;">Next 3 Trams:</strong>
@@ -67,15 +68,58 @@
     </div>
 
     <script>
+        let nextTramTime = null;
+        let countdownInterval = null;
+
+        function parseTime(timeStr) {
+            const [h, m, s] = timeStr.split(':').map(Number);
+            const now = new Date();
+            const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s || 0);
+            
+            // Handle cross-midnight if necessary (though usually handled by API)
+            if (target < now && now.getHours() > 20 && h < 4) {
+                target.setDate(target.getDate() + 1);
+            }
+            return target;
+        }
+
+        function updateCountdown() {
+            if (!nextTramTime) return;
+
+            const now = new Date();
+            const diff = nextTramTime - now;
+            const countdownEl = document.getElementById('countdown');
+
+            if (diff <= 0) {
+                countdownEl.style.display = 'none';
+                clearInterval(countdownInterval);
+                fetchStatus();
+                return;
+            }
+
+            const minutesUntil = diff / 1000 / 60;
+            
+            if (minutesUntil <= 5) {
+                countdownEl.style.display = 'block';
+                const mins = Math.floor(diff / 1000 / 60);
+                const secs = Math.floor((diff / 1000) % 60);
+                countdownEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                countdownEl.style.display = 'none';
+            }
+        }
+
         async function fetchStatus() {
             const statusEl = document.getElementById('status');
             const messageEl = document.getElementById('message');
             const tramListEl = document.getElementById('tram-list');
+            const countdownEl = document.getElementById('countdown');
             
             statusEl.innerText = "Checking...";
             statusEl.className = "status-box";
             messageEl.innerText = "";
             tramListEl.innerHTML = "";
+            countdownEl.style.display = 'none';
 
             try {
                 const response = await fetch('/api/v1/tram-status');
@@ -92,6 +136,8 @@
                 messageEl.innerText = data.message;
 
                 if (data.upcomingDepartures && data.upcomingDepartures.length > 0) {
+                    nextTramTime = parseTime(data.upcomingDepartures[0]);
+                    
                     data.upcomingDepartures.forEach(time => {
                         const li = document.createElement('li');
                         li.innerText = `• ${time}`;
@@ -100,7 +146,12 @@
                         li.style.marginBottom = "0.3rem";
                         tramListEl.appendChild(li);
                     });
+
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    countdownInterval = setInterval(updateCountdown, 1000);
+                    updateCountdown();
                 } else {
+                    nextTramTime = null;
                     const li = document.createElement('li');
                     li.innerText = "No upcoming trams found.";
                     tramListEl.appendChild(li);
