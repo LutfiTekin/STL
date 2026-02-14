@@ -1,0 +1,15 @@
+# Binaries
+tram-predictor
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Temporary GTFS data
+tmp_gtfs/
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
