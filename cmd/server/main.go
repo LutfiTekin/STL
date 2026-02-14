@@ -149,5 +149,8 @@ func fetchAndStore(store *storage.Storage) {
 		}
 	}
 
+	fmt.Println("Cleaning up temporary GTFS files...")
+	os.RemoveAll(tmpDir)
+
 	fmt.Println("GTFS update complete.")
 }
