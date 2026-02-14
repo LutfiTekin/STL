@@ -17,9 +17,10 @@ The parser performs a multi-stage filter to pinpoint relevant trams:
 - **Calendar Filter:** Identifies active services for the **current date** (handling weekdays, weekends, and specific holiday exceptions).
 - **Direction Filter:** Only includes trips that stop at **Rathaus Schönefeld** and subsequently stop at **Leipzig Hauptbahnhof** (detecting direction via stop sequence).
 
-### 3. Smart Storage
+### 3. Smart Storage & Cleanup
 - Processed departures for the next **7 days** are stored in **Redis**.
 - Data is indexed by date to ensure that requests at midnight or across different days always receive the correct schedule.
+- **Automatic Cleanup:** To save disk space, all temporary GTFS zip files and extracted data are deleted immediately after parsing is complete.
 
 ### 4. Prediction Logic
 When you open the web interface, the "Safe To Leave" engine evaluates the next 3 trams against your personal criteria:
