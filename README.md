@@ -43,8 +43,8 @@ When you open the web interface, the "Safe To Leave" engine evaluates the next 3
 - **Data Source:** GTFS (Static Schedule Data)
 
 ## 📦 Deployment
-Run the following on the `quiet` server:
+Run the following on the server:
 ```bash
 docker compose up -d --build
 ```
-Access at: `http://quiet:9030`
+Access at: `http://localhost:9030`
