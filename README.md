@@ -1,8 +1,8 @@
 # STL (Safe To Leave) - Leipzig Tram Predictor
 
-STL is a lightweight web application designed to answer one simple question: **"Is it safe to leave the house now to catch the STR 1 tram towards Leipzig Hauptbahnhof?"**
+STL is a lightweight web application designed to answer one simple question: "Is it safe to leave the house now to catch the STR 1 tram towards Leipzig Hauptbahnhof?"
 
-## 🚀 How it Works
+## How it Works
 
 The application follows an automated lifecycle to ensure you have the most accurate static schedule data available.
 
@@ -28,21 +28,21 @@ When you open the web interface, the "Safe To Leave" engine evaluates the next 3
 
 | Time until Departure | Status | Message |
 | :--- | :--- | :--- |
-| **< 3 mins** | 🔴 NO | Too late! You won't make it. |
-| **3 - 6 mins** | 🟢 YES | Safe to leave! Catch it perfectly. |
-| **> 6 mins** | 🔴 NO | Too early! You'll be waiting too long. |
+| **< 3 mins** | NO | Too late! You won't make it. |
+| **3 - 6 mins** | YES | Safe to leave! Catch it perfectly. |
+| **> 6 mins** | NO | Too early! You'll be waiting too long. |
 
 ### 5. Frontend
 - A simple, responsive dashboard served on port `9030`.
 - Automatically refreshes every minute to keep the prediction current.
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Backend:** Go (Golang)
 - **Database:** Redis (In-memory storage)
 - **Deployment:** Docker & Docker Compose
 - **Data Source:** GTFS (Static Schedule Data)
 
-## 📦 Deployment
+## Deployment
 Run the following on the server:
 ```bash
 docker compose up -d --build
