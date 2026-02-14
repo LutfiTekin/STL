@@ -10,6 +10,9 @@ tram-predictor
 tmp_gtfs/
 *.zip
 
+# Generated assets
+web/backgrounds/
+
 # OS files
 .DS_Store
 Thumbs.db
