@@ -24,7 +24,7 @@ func (s *Storage) StoreDepartures(ctx context.Context, stopID, date string, depa
 	if err != nil {
 		return err
 	}
-	return s.client.Set(ctx, "stop:"+stopID+":date:"+date+":departures", data, 24*time.Hour).Err()
+	return s.client.Set(ctx, "stop:"+stopID+":date:"+date+":departures", data, 7*24*time.Hour).Err()
 }
 
 func (s *Storage) GetDepartures(ctx context.Context, stopID, date string, target interface{}) error {
