@@ -151,7 +151,9 @@
                     
                     data.upcomingDepartures.forEach(time => {
                         const li = document.createElement('li');
-                        li.innerText = `• ${time}`;
+                        // Remove seconds part (HH:MM:SS -> HH:MM)
+                        const formattedTime = time.split(':').slice(0, 2).join(':');
+                        li.innerText = `• ${formattedTime}`;
                         li.style.fontSize = "1.1rem";
                         li.style.color = "#444";
                         li.style.marginBottom = "0.3rem";
