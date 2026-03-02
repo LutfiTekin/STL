@@ -1,4 +1,4 @@
-# STL (Safe To Leave) - Leipzig Tram Predictor
+# STL (Safe To Leave)
 
 STL is a lightweight web application designed to answer one simple question: "Is it safe to leave the house now to catch the STR 1 tram towards Leipzig Hauptbahnhof?"
 
